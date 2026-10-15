@@ -1,0 +1,633 @@
+<style>
+  :root{
+    --bg:#12141a; --surface:#1b1e27; --surface-2:#20242f; --hairline:#2a2e3a;
+    --text:#e7e5df; --text-muted:#8b8fa3; --text-dim:#5b6072;
+    --accent:#c89b3c; --accent-dim:#8a6f2c; --rec:#d64545;
+    --good:#5fa86a;
+    --font-display:'Fraunces',Georgia,serif;
+    --font-body:'Inter',-apple-system,sans-serif;
+    --font-mono:'IBM Plex Mono',monospace;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font-body);}
+  .wrap{max-width:640px;margin:0 auto;padding:2.5rem 1.25rem 4rem;}
+  .eyebrow{font-family:var(--font-mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-dim);}
+  h1{font-family:var(--font-display);font-weight:600;font-size:28px;margin:.35rem 0 0;}
+  .sub{color:var(--text-muted);font-size:14px;margin:.4rem 0 1.75rem;}
+  .streak-row{display:flex;align-items:center;gap:14px;padding:12px 14px;background:var(--surface);border:1px solid var(--hairline);border-radius:10px;margin-bottom:1.5rem;}
+  .streak-num{font-family:var(--font-display);font-size:22px;color:var(--accent);}
+  .streak-label{font-size:11px;color:var(--text-dim);}
+  .tally{display:flex;gap:4px;margin-left:auto;}
+  .tally .day{width:10px;height:10px;border-radius:2px;border:1px solid var(--hairline);}
+  .tally .day.hit{background:var(--accent);border-color:var(--accent);}
+  .card{background:var(--surface);border:1px solid var(--hairline);border-radius:14px;padding:1.5rem;margin-bottom:1.25rem;}
+  .prompt-eyebrow{font-family:var(--font-mono);font-size:11px;color:var(--accent);letter-spacing:.08em;text-transform:uppercase;}
+  .prompt-text{font-family:var(--font-display);font-size:22px;line-height:1.4;margin:.6rem 0 1.1rem;min-height:66px;}
+  .btn{font-family:var(--font-body);font-size:14px;font-weight:600;padding:10px 18px;border-radius:8px;border:1px solid var(--hairline);background:var(--surface-2);color:var(--text);cursor:pointer;}
+  .btn:hover{border-color:var(--text-dim);}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#1b1508;}
+  .btn.primary:hover{background:#dcae4a;}
+  .btn.rec{background:var(--rec);border-color:var(--rec);color:#fff;}
+  .btn:disabled{opacity:.4;cursor:default;}
+  .row{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;}
+  .timer{font-family:var(--font-mono);font-size:34px;color:var(--text);margin:.75rem 0;}
+  .timer.ok{color:var(--good);}
+  textarea{width:100%;min-height:110px;background:var(--surface-2);border:1px solid var(--hairline);border-radius:8px;color:var(--text);font-family:var(--font-body);font-size:14px;padding:10px 12px;resize:vertical;}
+  textarea:focus{outline:none;border-color:var(--accent);}
+  .hint{font-size:12px;color:var(--text-dim);margin-top:.4rem;}
+  .transcript{font-family:var(--font-mono);font-size:13.5px;line-height:1.7;white-space:pre-wrap;background:var(--surface-2);border:1px solid var(--hairline);border-radius:8px;padding:12px 14px;}
+  .filler{color:var(--rec);border-bottom:1px dashed var(--rec);}
+  .stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:1rem;}
+  .stat{background:var(--surface-2);border:1px solid var(--hairline);border-radius:8px;padding:10px 12px;text-align:center;}
+  .stat .n{font-family:var(--font-display);font-size:24px;color:var(--accent);}
+  .stat .l{font-size:10.5px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.06em;margin-top:2px;}
+  .tip{margin-top:1rem;padding:12px 14px;background:rgba(200,155,60,0.08);border:1px solid var(--accent-dim);border-radius:8px;font-size:14px;line-height:1.55;}
+  .tip .l{font-family:var(--font-mono);font-size:10.5px;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;}
+  .loading{color:var(--text-dim);font-size:13px;font-style:italic;}
+  .history{margin-top:2rem;}
+  .history h2{font-family:var(--font-display);font-size:17px;font-weight:600;margin-bottom:.75rem;}
+  .hist-item{border-bottom:1px solid var(--hairline);padding:12px 0;cursor:pointer;}
+  .hist-item:last-child{border-bottom:none;}
+  .hist-top{display:flex;justify-content:space-between;align-items:baseline;gap:10px;}
+  .hist-prompt{font-size:13.5px;color:var(--text);}
+  .hist-date{font-family:var(--font-mono);font-size:11px;color:var(--text-dim);white-space:nowrap;}
+  .hist-scores{font-family:var(--font-mono);font-size:11px;color:var(--text-muted);margin-top:3px;}
+  .hist-body{margin-top:8px;font-size:13px;color:var(--text-muted);display:none;}
+  .hist-item.open .hist-body{display:block;}
+  .empty{color:var(--text-dim);font-size:13px;font-style:italic;}
+  .mic-status{font-size:12px;color:var(--text-dim);margin-top:.5rem;}
+  select{background:var(--surface-2);border:1px solid var(--hairline);color:var(--text);border-radius:8px;padding:8px 10px;font-family:var(--font-body);font-size:13px;}
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<div class="wrap">
+  <div class="eyebrow">Private · just for you</div>
+  <h1>Practice room</h1>
+  <div class="sub">Draw a prompt, talk for a minute, see the pattern. Nobody else ever sees this.</div>
+
+  <div class="streak-row">
+    <div>
+      <div class="streak-num" id="streakNum">0</div>
+      <div class="streak-label">day streak</div>
+    </div>
+    <div style="border-left:1px solid var(--hairline);height:28px;"></div>
+    <div>
+      <div class="streak-num" id="totalNum">0</div>
+      <div class="streak-label">total takes</div>
+    </div>
+    <div class="tally" id="tally"></div>
+  </div>
+
+  <div class="card">
+    <div class="prompt-eyebrow" id="promptCat">—</div>
+    <div class="prompt-text" id="promptText">Draw a prompt to begin.</div>
+    <div class="row">
+      <button class="btn primary" id="drawBtn">Draw a prompt ↻</button>
+      <select id="catFilter">
+        <option value="">All categories</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="card" id="recordCard" style="display:none;">
+    <div class="timer" id="timerDisplay">00:00</div>
+    <div class="row">
+      <button class="btn rec" id="timerBtn">Start talking</button>
+      <button class="btn" id="micTryBtn">Try live transcription</button>
+    </div>
+    <div class="mic-status" id="micStatus"></div>
+
+    <div style="margin-top:1rem;">
+      <div class="hint" id="transcriptLabel">Type roughly what you said, right after — it doesn't need to be exact.</div>
+      <textarea id="transcriptBox" placeholder="Start typing here once you're done talking..."></textarea>
+    </div>
+    <div class="row" style="margin-top:.85rem;">
+      <button class="btn primary" id="analyzeBtn" disabled>Analyze this take</button>
+      <button class="btn" id="skipBtn">Discard</button>
+    </div>
+  </div>
+
+  <div class="card" id="resultCard" style="display:none;">
+    <div class="stat-grid">
+      <div class="stat"><div class="n" id="statWpm">–</div><div class="l">Words / min</div></div>
+      <div class="stat"><div class="n" id="statFiller">–</div><div class="l">Filler words</div></div>
+      <div class="stat"><div class="n" id="statDur">–</div><div class="l">Duration</div></div>
+    </div>
+    <div class="transcript" id="transcriptOut" style="margin-top:1rem;"></div>
+    <div id="aiFeedback"></div>
+  </div>
+
+  <div class="history">
+    <h2>History</h2>
+    <div id="historyList" class="empty">No takes yet. Draw a prompt above to start your first one.</div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var PROMPTS = [
+    {cat:"Everyday", icon:"🪴", text:"Narrate your morning routine like a nature documentary."},
+    {cat:"Everyday", icon:"🪴", text:"Explain how to make your favourite drink to someone who's never made one."},
+    {cat:"Everyday", icon:"🪴", text:"Describe your neighbourhood to someone who's never seen it."},
+    {cat:"Everyday", icon:"🪴", text:"Give today's weather report — but for your mood."},
+    {cat:"Everyday", icon:"🪴", text:"Walk someone through packing a bag for a trip you're not actually taking."},
+    {cat:"Opinions", icon:"⚖️", text:"Make the case for or against Monday mornings."},
+    {cat:"Opinions", icon:"⚖️", text:"Is a sandwich still a sandwich if it's open-faced? Defend your answer."},
+    {cat:"Opinions", icon:"⚖️", text:"Argue for your favourite season, as if the others are on trial."},
+    {cat:"Opinions", icon:"⚖️", text:"Convince someone that a skill you have is worth learning."},
+    {cat:"Opinions", icon:"⚖️", text:"Take a stand: window seat or aisle seat, and why."},
+    {cat:"Stories", icon:"📖", text:"Tell the story of the last thing you bought and immediately regretted."},
+    {cat:"Stories", icon:"📖", text:"Describe a moment you changed your mind about something."},
+    {cat:"Stories", icon:"📖", text:"Tell the story behind an object you own that most people wouldn't notice."},
+    {cat:"Stories", icon:"📖", text:"Recount a time you got lost — literally or otherwise."},
+    {cat:"Stories", icon:"📖", text:"Describe the best meal you've ever had, and why it stuck with you."},
+    {cat:"Work", icon:"🧭", text:"Explain your job to a curious ten-year-old."},
+    {cat:"Work", icon:"🧭", text:"Pitch a project you'd love to work on but haven't started."},
+    {cat:"Work", icon:"🧭", text:"Describe a lesson you learned the hard way at work or school."},
+    {cat:"Work", icon:"🧭", text:"Explain a skill you're good at to someone who's never tried it."},
+    {cat:"Work", icon:"🧭", text:"Give advice to yourself from exactly one year ago."},
+    {cat:"What if", icon:"🌀", text:"You have 24 hours before gaining one new skill instantly — which one, and why?"},
+    {cat:"What if", icon:"🌀", text:"If you could ask one question and get a true answer, what would you ask?"},
+    {cat:"What if", icon:"🌀", text:"Describe a rule you'd add to the world if you could add just one."},
+    {cat:"What if", icon:"🌀", text:"Describe one song that would be on the soundtrack of your life, and why."},
+    {cat:"What if", icon:"🌀", text:"You can only keep three apps on your phone. Which three, and why?"},
+    {cat:"Reflection", icon:"🕯️", text:"Describe a habit you're trying to build right now."},
+    {cat:"Reflection", icon:"🕯️", text:"What's a compliment you've never said out loud to someone?"},
+    {cat:"Reflection", icon:"🕯️", text:"Talk about something you're proud of that no one really noticed."},
+    {cat:"Reflection", icon:"🕯️", text:"Describe what confidence feels like for you, physically."},
+    {cat:"Reflection", icon:"🕯️", text:"What would you tell someone who's nervous about speaking in public?"}
+  ];
+  var FILLERS = ["um","uh","umm","uhh","like","you know","sort of","kind of","actually","basically","literally","i mean"];
+
+  var els = {
+    promptCat: document.getElementById('promptCat'),
+    promptText: document.getElementById('promptText'),
+    drawBtn: document.getElementById('drawBtn'),
+    catFilter: document.getElementById('catFilter'),
+    recordCard: document.getElementById('recordCard'),
+    timerDisplay: document.getElementById('timerDisplay'),
+    timerBtn: document.getElementById('timerBtn'),
+    micTryBtn: document.getElementById('micTryBtn'),
+    micStatus: document.getElementById('micStatus'),
+    transcriptBox: document.getElementById('transcriptBox'),
+    transcriptLabel: document.getElementById('transcriptLabel'),
+    analyzeBtn: document.getElementById('analyzeBtn'),
+    skipBtn: document.getElementById('skipBtn'),
+    resultCard: document.getElementById('resultCard'),
+    statWpm: document.getElementById('statWpm'),
+    statFiller: document.getElementById('statFiller'),
+    statDur: document.getElementById('statDur'),
+    transcriptOut: document.getElementById('transcriptOut'),
+    aiFeedback: document.getElementById('aiFeedback'),
+    historyList: document.getElementById('historyList'),
+    streakNum: document.getElementById('streakNum'),
+    totalNum: document.getElementById('totalNum'),
+    tally: document.getElementById('tally')
+  };
+
+  var cats = Array.from(new Set(PROMPTS.map(function(p){return p.cat;})));
+  cats.forEach(function(c){
+    var o = document.createElement('option');
+    o.value = c; o.textContent = c;
+    els.catFilter.appendChild(o);
+  });
+
+  var current = null;
+  var timerSeconds = 0;
+  var timerInterval = null;
+  var timerRunning = false;
+  var recognition = null;
+  var recognizing = false;
+  var liveTranscript = "";
+
+  function localISODate(d){
+    var off = d.getTimezoneOffset();
+    var local = new Date(d.getTime() - off*60000);
+    return local.toISOString().slice(0,10);
+  }
+
+  function drawPrompt(){
+    var filter = els.catFilter.value;
+    var pool = filter ? PROMPTS.filter(function(p){return p.cat===filter;}) : PROMPTS;
+    var next = pool[Math.floor(Math.random()*pool.length)];
+    if (current && pool.length>1) {
+      while (next.text === current.text) { next = pool[Math.floor(Math.random()*pool.length)]; }
+    }
+    current = next;
+    els.promptCat.textContent = current.icon + "  " + current.cat;
+    els.promptText.textContent = current.text;
+    els.recordCard.style.display = 'block';
+    els.resultCard.style.display = 'none';
+    resetRecordCard();
+  }
+
+  function resetRecordCard(){
+    timerSeconds = 0; timerRunning = false;
+    clearInterval(timerInterval);
+    els.timerDisplay.textContent = "00:00";
+    els.timerDisplay.classList.remove('ok');
+    els.timerBtn.textContent = "Start talking";
+    els.transcriptBox.value = "";
+    els.analyzeBtn.disabled = true;
+    liveTranscript = "";
+    if (recognizing) stopRecognition();
+    els.micStatus.textContent = "";
+  }
+
+  els.drawBtn.addEventListener('click', drawPrompt);
+  els.catFilter.addEventListener('change', function(){ if(current) drawPrompt(); });
+
+  els.timerBtn.addEventListener('click', function(){
+    if (!timerRunning) {
+      timerRunning = true;
+      els.timerBtn.textContent = "Stop";
+      timerInterval = setInterval(function(){
+        timerSeconds++;
+        var m = String(Math.floor(timerSeconds/60)).padStart(2,'0');
+        var s = String(timerSeconds%60).padStart(2,'0');
+        els.timerDisplay.textContent = m+":"+s;
+        if (timerSeconds>=45) els.timerDisplay.classList.add('ok');
+      }, 1000);
+    } else {
+      timerRunning = false;
+      clearInterval(timerInterval);
+      els.timerBtn.textContent = "Start talking";
+      if (recognizing) stopRecognition();
+      if (liveTranscript.trim()) els.transcriptBox.value = liveTranscript.trim();
+      els.analyzeBtn.disabled = false;
+    }
+  });
+
+  els.transcriptBox.addEventListener('input', function(){
+    els.analyzeBtn.disabled = els.transcriptBox.value.trim().length === 0;
+  });
+
+  var SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRec) {
+    els.micTryBtn.style.display = 'none';
+  }
+  els.micTryBtn.addEventListener('click', function(){
+    if (!SpeechRec) return;
+    try {
+      recognition = new SpeechRec();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = 'en-US';
+      recognition.onresult = function(e){
+        var text = "";
+        for (var i=0;i<e.results.length;i++){ text += e.results[i][0].transcript + " "; }
+        liveTranscript = text;
+        els.transcriptBox.value = text.trim();
+        els.analyzeBtn.disabled = text.trim().length === 0;
+      };
+      recognition.onerror = function(e){
+        els.micStatus.textContent = "Mic access wasn't available here (" + e.error + "). Typing works fine instead.";
+        recognizing = false;
+      };
+      recognition.onend = function(){ recognizing = false; };
+      recognition.start();
+      recognizing = true;
+      els.micStatus.textContent = "Listening — your words will fill in below as you talk.";
+      els.transcriptLabel.textContent = "Live transcript (edit freely if it mishears you):";
+    } catch(err) {
+      els.micStatus.textContent = "Couldn't start live transcription in this browser. Type instead.";
+    }
+  });
+
+  function stopRecognition(){
+    if (recognition) { try { recognition.stop(); } catch(e){} }
+    recognizing = false;
+  }
+
+  els.skipBtn.addEventListener('click', function(){
+    els.recordCard.style.display = 'none';
+    els.promptText.textContent = "Draw a prompt to begin.";
+    els.promptCat.textContent = "—";
+    current = null;
+  });
+
+  function highlightFillers(text){
+    var escaped = text.replace(/&/g,"&amp;").replace(/</g,"&lt;");
+    FILLERS.forEach(function(f){
+      var re = new RegExp("\\b"+f.replace(/ /g,"\\s+")+"\\b","gi");
+      escaped = escaped.replace(re, function(m){ return '<span class="filler">'+m+'</span>'; });
+    });
+    return escaped;
+  }
+
+  function countFillers(text){
+    var lower = text.toLowerCase();
+    var count = 0;
+    FILLERS.forEach(function(f){
+      var re = new RegExp("\\b"+f.replace(/ /g,"\\s+")+"\\b","g");
+      var m = lower.match(re);
+      if (m) count += m.length;
+    });
+    return count;
+  }
+
+  els.analyzeBtn.addEventListener('click', function(){
+    var transcript = els.transcriptBox.value.trim();
+    if (!transcript) return;
+    var durationSec = Math.max(timerSeconds, 5);
+    var wordCount = transcript.split(/\s+/).filter(Boolean).length;
+    var wpm = Math.round(wordCount / (durationSec/60));
+    var fillerCount = countFillers(transcript);
+
+    els.resultCard.style.display = 'block';
+    els.statWpm.textContent = wpm;
+    els.statFiller.textContent = fillerCount;
+    els.statDur.textContent = Math.floor(durationSec/60)+":"+String(durationSec%60).padStart(2,'0');
+    els.transcriptOut.innerHTML = highlightFillers(transcript);
+    els.aiFeedback.innerHTML = '<div class="loading" style="margin-top:1rem;">Getting feedback...</div>';
+
+    getAIFeedback(current, transcript, wpm, fillerCount, durationSec).then(function(fb){
+      els.aiFeedback.innerHTML = renderFeedback(fb);
+      wireAudioButtons(els.aiFeedback, fb.modelAnswer);
+      saveSession(current, transcript, durationSec, wpm, fillerCount, fb);
+    }).catch(function(){
+      var fb = heuristicFeedback(transcript, wpm, fillerCount, wordCount);
+      els.aiFeedback.innerHTML = renderFeedback(fb);
+      wireAudioButtons(els.aiFeedback, fb.modelAnswer);
+      saveSession(current, transcript, durationSec, wpm, fillerCount, fb);
+    });
+  });
+
+  function statBlock(n,label){
+    return '<div class="stat"><div class="n">'+n+'</div><div class="l">'+label+'</div></div>';
+  }
+  function escapeHtml(s){
+    return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;");
+  }
+
+  function renderFeedback(fb){
+    var html = '<div class="stat-grid" style="margin-top:1rem;">'
+      + statBlock(fb.clarity,"Clarity") + statBlock(fb.structure,"Structure") + statBlock(fb.presence,"Presence")
+      + '</div>';
+    if (fb.strengths && fb.strengths.length) {
+      html += '<div class="tip" style="border-color:var(--good);background:rgba(95,168,106,0.08);margin-top:1rem;">'
+        + '<div class="l" style="color:var(--good);">What worked</div>'
+        + '<ul style="margin:.3rem 0 0;padding-left:1.1rem;">' + fb.strengths.map(function(s){return '<li style="margin-bottom:4px;">'+escapeHtml(s)+'</li>';}).join('') + '</ul></div>';
+    }
+    if (fb.improvements && fb.improvements.length) {
+      html += '<div class="tip" style="border-color:var(--rec);background:rgba(214,69,69,0.07);margin-top:.75rem;">'
+        + '<div class="l" style="color:var(--rec);">Where to improve</div>'
+        + '<ul style="margin:.3rem 0 0;padding-left:1.1rem;">' + fb.improvements.map(function(s){return '<li style="margin-bottom:4px;">'+escapeHtml(s)+'</li>';}).join('') + '</ul></div>';
+    }
+    if (fb.ideas && fb.ideas.length) {
+      html += '<div class="tip" style="margin-top:.75rem;">'
+        + '<div class="l">Other angles you could take</div>'
+        + '<ul style="margin:.3rem 0 0;padding-left:1.1rem;">' + fb.ideas.map(function(s){return '<li style="margin-bottom:4px;">'+escapeHtml(s)+'</li>';}).join('') + '</ul></div>';
+    }
+    if (fb.modelAnswer) {
+      html += '<div class="tip" style="margin-top:.75rem;">'
+        + '<div class="l">One way this could have sounded</div>'
+        + '<div style="font-family:var(--font-display);font-style:italic;line-height:1.6;">' + escapeHtml(fb.modelAnswer) + '</div>'
+        + '<button class="btn" data-role="play-model" style="margin-top:10px;font-size:12.5px;padding:7px 14px;">Play ideal answer ▶</button></div>';
+    } else if (fb.offlineNote) {
+      html += '<div class="hint" style="margin-top:.75rem;">' + escapeHtml(fb.offlineNote) + '</div>';
+    }
+    html += '<div class="tip" style="margin-top:.75rem;"><div class="l">Try this next take</div>' + escapeHtml(fb.tip) + '</div>';
+    return html;
+  }
+
+  var currentUtterance = null;
+  function speakText(text, btn){
+    if (!('speechSynthesis' in window)) {
+      btn.textContent = 'Audio playback not supported in this browser';
+      btn.disabled = true;
+      return;
+    }
+    if (window.speechSynthesis.speaking) {
+      window.speechSynthesis.cancel();
+      btn.textContent = 'Play ideal answer ▶';
+      return;
+    }
+    var utter = new SpeechSynthesisUtterance(text);
+    utter.rate = 0.95;
+    utter.pitch = 1;
+    utter.onend = function(){ btn.textContent = 'Play ideal answer ▶'; };
+    utter.onerror = function(){ btn.textContent = 'Play ideal answer ▶'; };
+    window.speechSynthesis.cancel();
+    currentUtterance = utter;
+    window.speechSynthesis.speak(utter);
+    btn.textContent = 'Stop ⏹';
+  }
+
+  function wireAudioButtons(container, text){
+    var btn = container.querySelector('[data-role="play-model"]');
+    if (!btn) return;
+    if (!('speechSynthesis' in window)) {
+      btn.textContent = 'Audio playback not supported in this browser';
+      btn.disabled = true;
+      return;
+    }
+    btn.addEventListener('click', function(){ speakText(text, btn); });
+  }
+
+  var STOPWORDS = ["the","a","an","i","you","to","and","of","is","it","in","that","this","was","for","on","with","as","my","me","so","but","are","be","have","had","just","really","very","then","there","their","they","we","he","she","not","at","or","if","its","about","from","get","got","like"];
+
+  function analyzeTranscript(transcript){
+    var lower = transcript.toLowerCase();
+    var sentences = transcript.split(/[.?!]+/).map(function(s){return s.trim();}).filter(Boolean);
+    var words = lower.match(/[a-z']+/g) || [];
+    var wordCount = words.length;
+    var avgSentenceLen = sentences.length ? wordCount/sentences.length : wordCount;
+
+    var freq = {};
+    words.forEach(function(w){
+      if (STOPWORDS.indexOf(w) !== -1 || w.length<4) return;
+      freq[w] = (freq[w]||0)+1;
+    });
+    var repeated = Object.keys(freq).filter(function(w){return freq[w]>=3;}).sort(function(a,b){return freq[b]-freq[a];});
+
+    var firstFive = words.slice(0,5).join(' ');
+    var weakOpener = /^(um+|uh+|so|like|well|ok(ay)?)\b/.test(lower.trim());
+    var weakCloser = /(i guess|yeah|that'?s (it|all)|you know|so yeah)\s*$/.test(transcript.trim().toLowerCase());
+    var oneRunOnSentence = sentences.length <= 1 && wordCount > 40;
+    var veryLongSentences = avgSentenceLen > 28 && sentences.length > 1;
+    var hedges = (lower.match(/\b(kind of|sort of|i think|maybe|probably|i guess)\b/g) || []).length;
+
+    return {sentences:sentences, wordCount:wordCount, avgSentenceLen:avgSentenceLen, repeated:repeated,
+      weakOpener:weakOpener, weakCloser:weakCloser, oneRunOnSentence:oneRunOnSentence,
+      veryLongSentences:veryLongSentences, hedges:hedges, firstFive:firstFive};
+  }
+
+  function heuristicFeedback(transcript, wpm, fillerCount, wordCount){
+    var a = analyzeTranscript(transcript);
+    var clarity = Math.max(20, Math.min(95, 100 - fillerCount*6 - a.hedges*4 - Math.abs(wpm-140)*0.25));
+    var structure = Math.max(20, Math.min(90, 75 - (a.oneRunOnSentence?25:0) - (a.veryLongSentences?15:0) - (a.weakCloser?10:0)));
+    var presence = Math.max(20, Math.min(90, 75 - fillerCount*4 - (a.weakOpener?12:0)));
+
+    var strengths = [];
+    var improvements = [];
+
+    if (fillerCount <= 1) strengths.push("Almost no filler words — the take sounds clean and deliberate.");
+    if (wpm >= 120 && wpm <= 160) strengths.push("Your pace (" + wpm + " wpm) is right in the range that's easy to follow.");
+    if (a.sentences.length >= 3 && !a.veryLongSentences) strengths.push("You broke the answer into clear, separate thoughts instead of one long run.");
+    if (!strengths.length) strengths.push("You finished the full take without stopping — that's the hard part, and you did it.");
+
+    if (fillerCount >= 3) improvements.push("You used a filler word " + fillerCount + " times (see the highlighted words in your transcript above) — swap the next one for a silent half-second pause instead.");
+    if (a.weakOpener) improvements.push('You opened with "' + a.firstFive + '..." — try leading with your actual answer or point first, then explain it.');
+    if (a.weakCloser) improvements.push("You trailed off at the end instead of landing on a final point — plan one closing sentence you can always fall back on.");
+    if (a.oneRunOnSentence) improvements.push("This came out as one long run-on sentence (" + a.wordCount + " words, no real breaks) — try taking a breath at each new idea so it splits into shorter sentences.");
+    else if (a.veryLongSentences) improvements.push("Your sentences are averaging " + Math.round(a.avgSentenceLen) + " words — that's long to follow out loud. Aim for shorter sentences with a pause between them.");
+    if (a.repeated.length) improvements.push('You leaned on the word "' + a.repeated[0] + '" ' + freqCount(transcript, a.repeated[0]) + ' times — try swapping in a synonym or cutting the repeat.');
+    if (a.hedges >= 3) improvements.push("You hedged a lot (\"kind of\", \"I think\", \"maybe\") — stating things more directly will sound more confident.");
+    if (wpm > 175) improvements.push("You were speaking fast (" + wpm + " wpm) — slowing down slightly will make you easier to follow and sound more composed.");
+    if (wpm < 100 && wordCount > 20) improvements.push("Your pace was quite slow (" + wpm + " wpm) — a bit more momentum will keep the listener's attention.");
+    if (!improvements.length) improvements.push("Nothing glaring here — the next level is adding one concrete example or detail to back up your point.");
+
+    var tip = improvements[0].split(' — ')[1] || "Pick one thing from above and focus on just that for your next take.";
+    return {clarity:Math.round(clarity), structure:Math.round(structure), presence:Math.round(presence),
+      strengths:strengths.slice(0,2), improvements:improvements.slice(0,3), tip:tip,
+      ideas:[], modelAnswer:"", offlineNote:"Sample answer and idea angles need a connection to Claude — those show up once you're back online."};
+  }
+
+  function freqCount(transcript, word){
+    var re = new RegExp("\\b"+word+"\\b","gi");
+    var m = transcript.toLowerCase().match(re);
+    return m ? m.length : 0;
+  }
+
+  function getAIFeedback(prompt, transcript, wpm, fillerCount, durationSec){
+    var sys = "You are a direct, specific speaking coach reviewing a short impromptu take. Given a prompt and a transcript, return ONLY raw JSON, no markdown, no backticks, in this exact shape: {\"clarity\":number,\"structure\":number,\"presence\":number,\"strengths\":[string],\"improvements\":[string],\"ideas\":[string],\"modelAnswer\":string,\"tip\":string}. clarity/structure/presence are 0-100. strengths is 1-2 short items naming something specific that actually worked in THIS transcript (quote a word or phrase from it where relevant). improvements is 2-3 short items, each naming a SPECIFIC, concrete issue found in THIS transcript (e.g. a repeated word, a weak opening or closing line, a run-on sentence, a vague claim with no example, a hedge phrase) — quote the actual words from the transcript so the person can see exactly what you mean. Do not give generic advice; ground every point in the actual text. ideas is 2-3 short alternative angles or directions the speaker could have taken on this same prompt, different from what they said, to broaden how they think about it next time. modelAnswer is a short natural-sounding spoken answer to the SAME prompt (roughly 45-60 seconds if spoken aloud, so about 100-150 words), written the way a person would actually talk, not an essay — it should demonstrate good structure (clear point, brief example, a close) so the person has something concrete to compare their own take against. tip is one short, specific action for the next take (under 25 words). Be honest and direct but not harsh.";
+    var userMsg = "Prompt: " + prompt.text + "\nDuration: " + durationSec + "s, WPM: " + wpm + ", filler words: " + fillerCount + "\nTranscript: " + transcript;
+    return fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({
+        model: "claude-sonnet-4-6",
+        max_tokens: 900,
+        system: sys,
+        messages: [{role:"user", content: userMsg}]
+      })
+    }).then(function(r){ return r.json(); }).then(function(data){
+      var textBlock = (data.content || []).find(function(b){ return b.type==='text'; });
+      if (!textBlock) throw new Error('no text');
+      var clean = textBlock.text.replace(/```json|```/g,'').trim();
+      var parsed = JSON.parse(clean);
+      parsed.clarity = Math.round(Math.max(0,Math.min(100,parsed.clarity)));
+      parsed.structure = Math.round(Math.max(0,Math.min(100,parsed.structure)));
+      parsed.presence = Math.round(Math.max(0,Math.min(100,parsed.presence)));
+      if (!Array.isArray(parsed.strengths)) parsed.strengths = [];
+      if (!Array.isArray(parsed.improvements)) parsed.improvements = [];
+      if (!Array.isArray(parsed.ideas)) parsed.ideas = [];
+      if (typeof parsed.modelAnswer !== 'string') parsed.modelAnswer = "";
+      return parsed;
+    });
+  }
+
+  function storageGet(key){
+    if (window.storage && window.storage.get) {
+      return window.storage.get(key, false).then(function(r){ return r ? r.value : null; }).catch(function(){ return null; });
+    }
+    try { return Promise.resolve(localStorage.getItem(key)); } catch(e){ return Promise.resolve(null); }
+  }
+  function storageSet(key, value){
+    if (window.storage && window.storage.set) {
+      return window.storage.set(key, value, false);
+    }
+    try { localStorage.setItem(key, value); return Promise.resolve(true); } catch(e){ return Promise.resolve(false); }
+  }
+
+  function saveSession(prompt, transcript, durationSec, wpm, fillerCount, fb){
+    loadSessions().then(function(sessions){
+      var now = new Date();
+      sessions.push({
+        date: localISODate(now),
+        timestamp: now.toISOString(),
+        cat: prompt.cat,
+        prompt: prompt.text,
+        durationSec: durationSec,
+        wpm: wpm,
+        fillerCount: fillerCount,
+        transcript: transcript,
+        scores: {clarity:fb.clarity, structure:fb.structure, presence:fb.presence},
+        tip: fb.tip,
+        strengths: fb.strengths || [],
+        improvements: fb.improvements || [],
+        ideas: fb.ideas || [],
+        modelAnswer: fb.modelAnswer || ""
+      });
+      storageSet('sessions', JSON.stringify(sessions)).then(function(){
+        renderStreak(sessions);
+        renderHistory(sessions);
+      });
+    });
+  }
+
+  function loadSessions(){
+    return storageGet('sessions').then(function(value){
+      if (!value) return [];
+      try { return JSON.parse(value); } catch(e){ return []; }
+    }).catch(function(){ return []; });
+  }
+
+  function renderStreak(sessions){
+    var dates = new Set(sessions.map(function(s){return s.date;}));
+    els.totalNum.textContent = sessions.length;
+
+    var streak = 0;
+    var d = new Date();
+    var todayStr = localISODate(d);
+    if (!dates.has(todayStr)) { d.setDate(d.getDate()-1); }
+    while (dates.has(localISODate(d))) {
+      streak++;
+      d.setDate(d.getDate()-1);
+    }
+    els.streakNum.textContent = streak;
+
+    els.tally.innerHTML = "";
+    var day = new Date();
+    var cells = [];
+    for (var i=13;i>=0;i--){
+      var dd = new Date();
+      dd.setDate(day.getDate()-i);
+      var key = localISODate(dd);
+      var div = document.createElement('div');
+      div.className = 'day' + (dates.has(key) ? ' hit' : '');
+      div.title = key;
+      cells.push(div);
+    }
+    cells.forEach(function(c){ els.tally.appendChild(c); });
+  }
+
+  function renderHistory(sessions){
+    if (!sessions.length) {
+      els.historyList.className = 'empty';
+      els.historyList.textContent = 'No takes yet. Draw a prompt above to start your first one.';
+      return;
+    }
+    els.historyList.className = '';
+    els.historyList.innerHTML = "";
+    sessions.slice().reverse().forEach(function(s, idx){
+      var item = document.createElement('div');
+      item.className = 'hist-item';
+      var avg = Math.round((s.scores.clarity + s.scores.structure + s.scores.presence)/3);
+      var modelHtml = s.modelAnswer
+        ? '<div style="margin-top:8px;font-family:var(--font-display);font-style:italic;">'+escapeHtml(s.modelAnswer)+'</div>'
+          + '<button class="btn" data-role="play-model" style="margin-top:8px;font-size:12px;padding:6px 12px;">Play ideal answer ▶</button>'
+        : '';
+      item.innerHTML = '<div class="hist-top"><div class="hist-prompt">'+escapeHtml(s.prompt)+'</div>'
+        + '<div class="hist-date">'+s.date+'</div></div>'
+        + '<div class="hist-scores">avg '+avg+' · '+s.wpm+' wpm · '+s.fillerCount+' fillers · '+s.durationSec+'s</div>'
+        + '<div class="hist-body"><div style="margin-bottom:6px;">'+escapeHtml(s.tip)+'</div>'
+        + '<div class="transcript" style="font-size:12px;">'+highlightFillers(s.transcript)+'</div>'
+        + modelHtml + '</div>';
+      item.addEventListener('click', function(e){
+        if (e.target.closest('[data-role="play-model"]')) return;
+        item.classList.toggle('open');
+      });
+      if (s.modelAnswer) wireAudioButtons(item, s.modelAnswer);
+      els.historyList.appendChild(item);
+    });
+  }
+
+  loadSessions().then(function(sessions){
+    renderStreak(sessions);
+    renderHistory(sessions);
+  });
+})();
+</script>
